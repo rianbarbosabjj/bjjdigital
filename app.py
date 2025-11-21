@@ -11,6 +11,7 @@ from modules.pdf_generator import pdf_generator
 from modules.question_manager import question_manager
 from modules.user_manager import user_manager
 from modules.exam_manager import exam_manager
+from modules.registration_manager import registration_manager
 from modules.ui_components import render_card
 from utils.validators import formatar_e_validar_cpf, formatar_cep, buscar_cep
 from streamlit_option_menu import option_menu
@@ -155,10 +156,11 @@ def render_login_form():
             st.rerun()
 
 def render_registration_form():
-    """Formulário de cadastro"""
+    """Formulário de cadastro (Apenas UI e coleta de dados)"""
     st.subheader("📋 Cadastro de Novo Usuário")
     
     with st.form(key="form_cadastro"):
+        # Seção de Dados Pessoais
         nome = st.text_input("Nome de Usuário (login):")
         email = st.text_input("E-mail:")
         cpf_input = st.text_input("CPF (somente números ou formato padrão):")
@@ -167,7 +169,6 @@ def render_registration_form():
         
         tipo_usuario = st.selectbox("Tipo de Usuário:", ["Aluno", "Professor"])
         
-        # Campos específicos por tipo
         if tipo_usuario == "Aluno":
             faixa = st.selectbox("Graduação (faixa):", [
                 "Branca", "Cinza", "Amarela", "Laranja", "Verde",
@@ -177,8 +178,10 @@ def render_registration_form():
             faixa = st.selectbox("Graduação (faixa):", ["Marrom", "Preta"])
             st.info("Professores devem ser Marrom ou Preta.")
         
-        # Formulário de endereço simplificado
+        # Seção de Endereço (usando a busca de CEP do app.py, que deve ser movida)
         st.markdown("#### 📍 Endereço")
+        
+        # --- COMEÇA A SEÇÃO DE ENDEREÇO E BUSCA (DEIXADA AQUI POR HORA) ---
         col_cep, col_btn = st.columns([3, 1])
         with col_cep:
             cep = st.text_input("CEP:", max_chars=9, key="cadastro_cep")
@@ -186,6 +189,7 @@ def render_registration_form():
             st.markdown("<div style='height: 29px;'></div>", unsafe_allow_html=True)
             buscar_cep_clicked = st.button("Buscar CEP 🔍", key="btn_buscar_cep", use_container_width=True)
         
+        # Campos que podem ser preenchidos pela busca de CEP
         col_logr, col_bairro = st.columns(2)
         with col_logr:
             logradouro = st.text_input("Logradouro:", key="cadastro_logradouro")
@@ -203,6 +207,7 @@ def render_registration_form():
             numero = st.text_input("Número:", key="cadastro_numero")
         with col_comp:
             complemento = st.text_input("Complemento:", key="cadastro_complemento")
+        # --- FIM DA SEÇÃO DE ENDEREÇO E BUSCA ---
         
         col1, col2 = st.columns(2)
         with col1:
@@ -210,9 +215,10 @@ def render_registration_form():
         with col2:
             voltar_login = st.form_submit_button("⬅️ Voltar para Login", use_container_width=True)
         
-        # Lógica de busca de CEP (fora do form submit principal)
+        # Lógica de busca de CEP (pode ser movida para util ou mantida na UI por interagir com st.session_state)
         if buscar_cep_clicked and cep:
-            endereco = buscar_cep(cep)
+            # A função buscar_cep() ainda está em 'utils/validators' ou importada no app.py
+            endereco = buscar_cep(cep) 
             if endereco:
                 st.success("Endereço encontrado! Preencha Número e Complemento.")
                 # Atualiza os campos via session state
@@ -224,82 +230,26 @@ def render_registration_form():
             else:
                 st.error("CEP inválido ou não encontrado.")
         
+        # LÓGICA DE ENVIO SIMPLIFICADA
         if submit_cadastro:
-            # Validações e criação do usuário
-            cpf_final = formatar_e_validar_cpf(cpf_input)
-            cep_final = formatar_cep(cep)
+            # 1. Empacota os dados
+            dados_form = {
+                'nome': nome, 'email': email, 'cpf_input': cpf_input, 'senha': senha, 
+                'confirmar': confirmar, 'tipo_usuario': tipo_usuario, 'faixa': faixa,
+                'cep': cep, 'logradouro': logradouro, 'bairro': bairro, 'cidade': cidade,
+                'uf': uf, 'numero': numero, 'complemento': complemento
+            }
             
-            if not (nome and email and cpf_input and senha and confirmar):
-                st.warning("Preencha todos os campos de contato e senha obrigatórios.")
-            elif senha != confirmar:
-                st.error("As senhas não coincidem.")
-            elif not cpf_final:
-                st.error("CPF inválido. Por favor, corrija o formato (11 dígitos).")
-            elif not (cep_final and logradouro and bairro and cidade and uf):
-                st.error("O Endereço (CEP, Logradouro, Bairro, Cidade e UF) é obrigatório.")
+            # 2. Chama o Manager para lidar com a lógica de negócio
+            sucesso, mensagem = registration_manager.criar_novo_usuario_e_vinculo(dados_form)
+            
+            # 3. Trata o resultado e a UI
+            if sucesso:
+                st.success(mensagem)
+                SessionManager.set("modo_login", "login")
+                st.rerun()
             else:
-                # Criação do usuário no banco
-                try:
-                    conn = db_manager.get_connection()
-                    cursor = conn.cursor()
-                    
-                    # Verifica se usuário já existe
-                    cursor.execute("SELECT id FROM usuarios WHERE nome=? OR email=? OR cpf=?", (nome, email, cpf_final))
-                    if cursor.fetchone():
-                        st.error("Nome de usuário, e-mail ou CPF já cadastrado.")
-                    else:
-                        hashed = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
-                        tipo_db = "aluno" if tipo_usuario == "Aluno" else "professor"
-                        
-                        cursor.execute(
-                            """
-                            INSERT INTO usuarios (
-                                nome, email, cpf, tipo_usuario, senha, auth_provider, perfil_completo,
-                                cep, logradouro, numero, complemento, bairro, cidade, uf
-                            )
-                            VALUES (?, ?, ?, ?, ?, 'local', 1, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                nome.upper(), email.upper(), cpf_final, tipo_db, hashed,
-                                cep_final, 
-                                logradouro.upper(),
-                                numero.upper() if numero else None,
-                                complemento.upper() if complemento else None,
-                                bairro.upper(),
-                                cidade.upper(),
-                                uf.upper()
-                            )
-                        )
-                        
-                        novo_id = cursor.lastrowid
-                        
-                        # Cria vínculo na tabela apropriada
-                        if tipo_db == "aluno":
-                            cursor.execute(
-                                """
-                                INSERT INTO alunos (usuario_id, faixa_atual, status_vinculo) 
-                                VALUES (?, ?, 'pendente')
-                                """,
-                                (novo_id, faixa)
-                            )
-                        else:
-                            cursor.execute(
-                                """
-                                INSERT INTO professores (usuario_id, status_vinculo) 
-                                VALUES (?, 'pendente')
-                                """,
-                                (novo_id,)
-                            )
-                        
-                        conn.commit()
-                        conn.close()
-                        
-                        st.success("Cadastro realizado! Seu vínculo está **PENDENTE**...")
-                        SessionManager.set("modo_login", "login")
-                        st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"Erro ao cadastrar: {e}")
+                st.error(mensagem)
         
         if voltar_login:
             SessionManager.set("modo_login", "login")
