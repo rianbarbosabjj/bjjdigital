@@ -10,6 +10,10 @@ COLORS = {
 # Configurações de caminhos
 PATHS = {
     "database": "data/bjj_digital.db",
+    "questions_dir": "questions",
+    "exams_dir": "exames",
+    "reports_dir": "relatorios",
+    "temp_qr": "temp_qr",
     "logo": "assets/logo.png",
     "selo": "assets/selo_dourado.png",
     "fonte_assinatura": "assets/fonts/Allura-Regular.ttf"
@@ -19,7 +23,14 @@ PATHS = {
 MESSAGES = {
     "welcome": "Bem-vindo ao BJJ Digital",
     "login_success": "Login realizado com sucesso!",
-    "logout_success": "Logout realizado com sucesso!"
+    "logout_success": "Logout realizado com sucesso!",
+    "db_created": "Criando novo banco de dados..."
+}
+
+# Configurações de exame
+EXAM_CONFIG = {
+    "passing_grade": 70,
+    "code_prefix": "BJJDIGITAL"
 }
 
 # CSS global
@@ -38,6 +49,18 @@ STYLES = {
             transition: 0.3s;
         }
         
+        .stButton>button:hover {
+            background: #FFD770;
+            color: #0e2d26;
+            transform: scale(1.02);
+        }
+        
+        h1, h2, h3 {
+            color: #FFD770;
+            text-align: center;
+            font-weight: 700;
+        }
+        
         .login-container {
             display: flex;
             flex-direction: column;
@@ -50,6 +73,12 @@ STYLES = {
             color: #FFD770;
             text-align: center;
             margin-bottom: 2rem;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 1rem 0;
+            color: #ccc;
         }
         </style>
     """
