@@ -3,7 +3,4 @@ fpdf2==2.7.4
 Pillow==9.5.0
 qrcode==7.3.1
 bcrypt==3.2.0
-requests==2.28.2
 pandas==1.5.3
-plotly==5.13.1
-streamlit-option-menu==0.3.2
