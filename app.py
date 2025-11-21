@@ -16,6 +16,45 @@ from utils.validators import formatar_e_validar_cpf, formatar_cep, buscar_cep
 from streamlit_option_menu import option_menu
 
 # =========================================
+# VERIFICAÇÃO DE DEPENDÊNCIAS
+# =========================================
+
+def check_dependencies():
+    """Verifica se todas as dependências estão disponíveis"""
+    required_packages = {
+        'streamlit': '1.28.2',
+        'fpdf2': '2.7.4', 
+        'Pillow': '9.5.0',
+        'qrcode': '7.3.1',
+        'bcrypt': '3.2.0',
+        'pandas': '1.5.3',
+        'plotly': '5.13.1'
+    }
+    
+    missing = []
+    for package, version in required_packages.items():
+        try:
+            if package == 'streamlit':
+                import streamlit
+                if streamlit.__version__ != version:
+                    st.warning(f"{package} versão {streamlit.__version__} (esperada: {version})")
+            elif package == 'Pillow':
+                from PIL import Image
+            else:
+                __import__(package)
+        except ImportError:
+            missing.append(f"{package}>={version}")
+    
+    if missing:
+        st.error(f"Pacotes faltando: {', '.join(missing)}")
+        st.stop()
+    
+    return True
+
+# Executa a verificação
+check_dependencies()
+
+# =========================================
 # VERIFICAÇÕES DE SEGURANÇA
 # =========================================
 
