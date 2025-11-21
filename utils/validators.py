@@ -1,8 +1,9 @@
 import re
 import requests
+from typing import Optional, Dict
 
-def formatar_e_validar_cpf(cpf: str) -> str:
-    """Valida e formata CPF"""
+def formatar_e_validar_cpf(cpf: str) -> Optional[str]:
+    """Valida e formata CPF (apenas números, 11 dígitos)"""
     if not cpf:
         return None
     
@@ -12,8 +13,8 @@ def formatar_e_validar_cpf(cpf: str) -> str:
         return cpf_limpo
     return None
 
-def formatar_cep(cep: str) -> str:
-    """Valida e formata CEP"""
+def formatar_cep(cep: str) -> Optional[str]:
+    """Valida e formata CEP (apenas números, 8 dígitos)"""
     if not cep:
         return None
     
@@ -23,8 +24,8 @@ def formatar_cep(cep: str) -> str:
         return cep_limpo
     return None
 
-def buscar_cep(cep: str) -> dict:
-    """Busca endereço por CEP"""
+def buscar_cep(cep: str) -> Optional[Dict]:
+    """Busca endereço por CEP usando ViaCEP"""
     cep_limpo = formatar_cep(cep)
     if not cep_limpo:
         return None
@@ -45,3 +46,13 @@ def buscar_cep(cep: str) -> dict:
         }
     except requests.exceptions.RequestException:
         return None
+
+def normalizar_nome(nome: str) -> str:
+    """Remove acentos e formata o nome para uso em arquivos"""
+    import unicodedata
+    return "_".join(
+        unicodedata.normalize("NFKD", nome)
+        .encode("ASCII", "ignore")
+        .decode()
+        .split()
+    ).lower()
