@@ -4,6 +4,10 @@ from modules.ui_components import render_card, render_address_form
 from utils.validators import Validators
 from config.constants import COLORS
 from session_state import SessionState
+from session_manager import SessionManager
+
+# Inicializa o estado da sessão
+SessionManager.init_session_state()
 
 def main():
     # Inicialização
