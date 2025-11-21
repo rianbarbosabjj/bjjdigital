@@ -6,4 +6,8 @@ enableCORS = false
 enableXsrfProtection = false
 
 [browser]
+serverAddress = "localhost"
 gatherUsageStats = false
+
+[logger]
+level = "error"
